@@ -82,26 +82,28 @@ async def retrieve_menu_items(instance, start_url: str) -> list[dict]:
                 # open pop-up
                 try:
                     await item.click()
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(1)
 
                     popup = await page.query_selector('[data-testid="itemBody"]')
+
+                    print('opened popup')
 
                     option_lists = await popup.query_selector_all('[aria-labelledby^="optionList_"]')
                     print(f"Found {len(option_lists)} options in {nameStr}")
 
+                    print('found option list')
+
                     for list in option_lists:
                         try:
-                            options = await list.query_selector_all('[class^="Text-sc"]')
-                            option_name = await options[0].inner_text()
+                            options = await list.query_selector_all('[class^="styles__ToggleContainer"]')
+                            option_name = await list.query_selector('[h3]')
+                            option_name_str = await option_name.inner_html()
                             # option_name_str = await option_name.inner_html()
                             list_items = []
                             for i in range (len(options)):
-                                if i == 0:
-                                    pass
-                                else:
-                                    list_items.append(await options[i].inner_text())
+                                list_items.append(await options[i].inner_text())
                             print(list_items)
-                            menu_data[option_name] = list_items
+                            menu_data[option_name_str] = list_items
                         except:
                             print('no contents found')
                     
