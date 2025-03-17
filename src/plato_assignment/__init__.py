@@ -47,7 +47,7 @@ async def retrieve_menu_items(instance, start_url: str) -> list[dict]:
         previous_height = 0
         while True:
             await page.evaluate("window.scrollBy(0, 1000)")  # Scroll down
-            await asyncio.sleep(1)  # Allow time for items to load
+            await asyncio.sleep(0.5)  # Allow time for items to load
             new_height = await page.evaluate("document.body.scrollHeight")
 
             if new_height == previous_height:  # Stop when no more new content loads
@@ -62,31 +62,64 @@ async def retrieve_menu_items(instance, start_url: str) -> list[dict]:
         menu_data = {}
         for container in sections:
             await container.scroll_into_view_if_needed()  # Scroll to make section visible
-            await asyncio.sleep(1)  # Wait for new items to load
+            await asyncio.sleep(0.5)  # Wait for new items to load
             # inner_html = await container.inner_html()
             # print(inner_html)
             menu_items = await container.query_selector_all('[data-anchor-id="MenuItem"]')
             #data-anchor-id="MenuItem"
 
             for item in menu_items:
+
+                # scrape basic info from tile (name, subtitle)
                 name = await item.query_selector('[data-telemetry-id="storeMenuItem.title"]')
-                nameStr = await name.inner_html()
+                nameStr = await name.inner_text()
                 try:
                     subtitle = await item.query_selector('[data-telemetry-id="storeMenuItem.subtitle"]')
-                    subtitleStr = await subtitle.inner_html()
+                    subtitleStr = await subtitle.inner_text()
                 except:
                     subtitleStr = ''
+                
+                # open pop-up
                 try:
-                    price = await item.query_selector('[data-anchor-id="StoreMenuItemPrice"]')
-                    priceStr = await price.inner_html()
+                    await item.click()
+                    await asyncio.sleep(0.5)
+
+                    popup = await page.query_selector('[data-testid="itemBody"]')
+
+                    option_lists = await popup.query_selector_all('[aria-labelledby^="optionList_"]')
+                    print(f"Found {len(option_lists)} options in {nameStr}")
+
+                    for list in option_lists:
+                        try:
+                            options = await list.query_selector_all('[class^="Text-sc"]')
+                            option_name = await options[0].inner_text()
+                            # option_name_str = await option_name.inner_html()
+                            list_items = []
+                            for i in range (len(options)):
+                                if i == 0:
+                                    pass
+                                else:
+                                    list_items.append(await options[i].inner_text())
+                            print(list_items)
+                            menu_data[option_name] = list_items
+                        except:
+                            print('no contents found')
+                    
+                    # print(menu_data)
+                    await page.keyboard.press("Escape")
+                
+                # if the item does not open, just scrape data from item tile
                 except:
-                    priceStr = ''
-                menu_data[nameStr] = {'description': subtitleStr, 'price': priceStr}
-            # menu_items += add_items
-            # print(f"Found {len(menu_items)} menu items.")  # Debugging step
-        print(menu_data)
+                    try:
+                        price = await item.query_selector('[data-anchor-id="StoreMenuItemPrice"]')
+                        priceStr = await price.inner_html()
+                    except:
+                        priceStr = ''
+                    menu_data[nameStr] = {'description': subtitleStr, 'price': priceStr}
+                    print("unable to open popup.")
+
+        # print(menu_data)
         return menu_data
-        # data-telemetry-id="storeMenuItem.title"
 
 
         # html_content = await page.content()
