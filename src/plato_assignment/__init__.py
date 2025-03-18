@@ -96,14 +96,17 @@ async def retrieve_menu_items(instance, start_url: str) -> list[dict]:
                     for list in option_lists:
                         try:
                             options = await list.query_selector_all('[class^="styles__ToggleContainer"]')
-                            option_name = await list.query_selector('[h3]')
-                            option_name_str = await option_name.inner_html()
-                            # option_name_str = await option_name.inner_html()
+                            # option_name = await list.query_selector('[h3]')
+                            try:
+                                option_name = (await list.get_attribute('[aria-labelledby]')) #.rpartition('_')[2]
+                            except:
+                                option_name = 'label not found'
+                            print(option_name)
                             list_items = []
                             for i in range (len(options)):
-                                list_items.append(await options[i].inner_text())
+                                list_items.append((await options[i].inner_text()).split('\n')[0])
                             print(list_items)
-                            menu_data[option_name_str] = list_items
+                            menu_data[nameStr][option_name] = list_items
                         except:
                             print('no contents found')
                     
