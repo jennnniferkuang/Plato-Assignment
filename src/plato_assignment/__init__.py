@@ -5,7 +5,7 @@ from scrapybara import Scrapybara
 from undetected_playwright.async_api import async_playwright
 
 async def get_scrapybara_browser():
-    client = Scrapybara(api_key="scrapy-a9439aae-0904-4dfe-98f7-b75b75b88e8a")
+    client = Scrapybara(api_key="scrapy-key")
     instance = client.start_browser()
     return instance
 
